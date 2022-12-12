@@ -15,9 +15,11 @@ type ProcessedTalk = Talk & {
 };
 
 export enum SessionType {
-  morning,
-  afternoon,
+  morning="morning",
+  afternoon="afternoon",
 }
+
+export type TimelineEvent = Optional<ProcessedTalk, "duration"> & { type?: "empty" };
 
 interface TrackSession {
   talks: ProcessedTalk[];
@@ -28,6 +30,13 @@ interface TrackSession {
 
 const networkingEarliestStart = "16:00";
 const timePrintFormat = "hh:mmA";
+
+const remainingSlotToTimelineEvent = (session: TrackSession) => ({
+  title: `${session.sessionType} slot left to be filled`,
+  allocatedTime: session.lastTalkEnd.format(timePrintFormat),
+  duration: session.remainingSlot,
+  type:"empty"
+} as TimelineEvent);
 
 class Track {
   morningSession: TrackSession = {
@@ -49,11 +58,17 @@ class Track {
       : networkingEarliestStart;
   }
 
-  get timeline(): Optional<ProcessedTalk, "duration">[] {
+  get timeline(): TimelineEvent[] {
     return [
       ...this.morningSession.talks,
+      ...(this.morningSession.remainingSlot
+        ? [remainingSlotToTimelineEvent(this.morningSession)]
+        : []),
       { title: "Lunch", allocatedTime: "12:00PM" },
       ...this.afternoonSession.talks,
+      ...(this.afternoonSession.remainingSlot
+        ? [remainingSlotToTimelineEvent(this.afternoonSession)]
+        : []),
       { title: "Networking Event", allocatedTime: "05:00PM" },
     ];
   }
@@ -111,7 +126,7 @@ export class TrackManager {
   }
 
   /**
-   * generate a string array of timeline
+   * generate a string array of timeline just for printing
    * @returns
    */
   timelineLog(): string[] {
@@ -120,7 +135,7 @@ export class TrackManager {
         ...[
           ...(index !== 0 ? [">"] : []),
           `> Track ${index + 1}:`,
-          ...track.timeline.map(
+          ...track.timeline.filter(event=>event.type!=='empty').map(
             (talk) =>
               `> ${talk.allocatedTime} ${talk.title}${
                 talk.duration
