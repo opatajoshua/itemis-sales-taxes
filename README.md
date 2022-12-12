@@ -1,4 +1,5 @@
-# Getting Started with Create React App
+# ITEMIS Coding challenge
+## Problem 2: CONFERENCE TRACK MANAGEMENT
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
